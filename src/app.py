@@ -10,14 +10,18 @@ from PIL import Image
 #SAVE_PATH = os.environ("USERPROFILE")
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
+CN_MODELS_DIR = os.path.abspath(os.path.join(current_dir, "..", "models", "ControlNet"))
+SD_MODELS_DIR = os.path.abspath(os.path.join(current_dir, "..", "models", "Stable-Diffusion"))
+SD_CHECKPOINTS_DIR = os.path.abspath(os.path.join(current_dir, "..", "models", "Checkpoints"))
 
-# Construct paths relative to the src directory
+CN_model_list = [f for f in os.listdir(CN_MODELS_DIR) if not f.endswith('.txt')]
+SD_model_list = [f for f in os.listdir(SD_MODELS_DIR) if not f.endswith('.txt')]
+SD_checkpoints_list = [f for f in os.listdir(SD_CHECKPOINTS_DIR) if not f.endswith('.txt')]
 
 SD_MODEL_PATH = os.path.abspath(os.path.join(current_dir, "..", "models", "Stable-Diffusion", "stable-diffusion-v1-5"))
-CN_MODEL_PATH = os.path.abspath(os.path.join(current_dir, "..", "models", "ControlNet", "sd-controlnet-canny"))
 
 print(SD_MODEL_PATH)
-print(CN_MODEL_PATH)
+
 SAVE_PATH = os.path.join(os.getcwd(), "output")
 
 
@@ -42,10 +46,10 @@ def name_file(path):
 def numpy_to_pil(np_array):
     return Image.fromarray(np.uint8(np_array))
 
-def init_cuda_pipe(using_CN: bool, low_vram: bool):
+def init_cuda_pipe(using_CN: bool, low_vram: bool, CN_preprocessor):
 
     if using_CN and low_vram:
-        controlnet = ControlNetModel.from_pretrained(CN_MODEL_PATH)
+        controlnet = ControlNetModel.from_pretrained(CN_preprocessor)
         pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH, torch_dtype=torch.float16, revision='fp16')
         pipe.enable_attention_slicing()
 
@@ -54,43 +58,62 @@ def init_cuda_pipe(using_CN: bool, low_vram: bool):
         pipe.enable_attention_slicing()
 
     elif using_CN:
-        controlnet = ControlNetModel.from_pretrained(CN_MODEL_PATH)
-        pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH,controlnet=controlnet,safety_checker=None)
+        controlnet = ControlNetModel.from_pretrained(CN_preprocessor)
+        pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH,controlnet=controlnet)
 
     else:
-        pipe = StableDiffusionPipeline.from_pretrained(SD_MODEL_PATH)
+        pipe = StableDiffusionPipeline.from_pretrained(CN_preprocessor)
 
     return pipe
 
 def render_prompt(
-        prompt, negative_prompt, num_steps, g_scale, height=512, width=512, img=None
+        prompt, 
+        negative_prompt, 
+        num_steps, g_scale, 
+        SD_checkpoint,
+        CN_preprocessor,
+        height=512, width=512, 
+        img=None
+        
 ):
     
+    SD_checkpoint = os.path.join(SD_CHECKPOINTS_DIR, SD_checkpoint)
+    
     using_cn = (img is not None)
+
     if using_cn:
+        CN_preprocessor = os.path.join(CN_MODELS_DIR, CN_preprocessor)
         img = numpy_to_pil(img)
+
+
+    print(SD_checkpoint)
+    checkpoint = torch.load(SD_checkpoint, map_location=device_type)
     
     if not os.path.exists(SAVE_PATH):
         os.mkdir(SAVE_PATH)
     
     if device_type == "cuda":
 
-        pipe = init_cuda_pipe(using_cn, low_vram)
+        pipe = init_cuda_pipe(using_cn, low_vram, CN_preprocessor)
         pipe.to("cuda")
 
     elif device_type == "cpu":
 
         if using_cn:
-            controlnet = ControlNetModel.from_pretrained(CN_MODEL_PATH)
-            pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH,controlnet=controlnet,safety_checker=None)
+            controlnet = ControlNetModel.from_pretrained(CN_preprocessor)
+            pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH,controlnet=controlnet)
         
         else:
             pipe = StableDiffusionPipeline.from_pretrained(SD_MODEL_PATH)
 
+        pipe.to("cpu")
+
     else:
-        print("no gpu or cpu")
-    
-    print(f"\n\nGenerating with prompt: {prompt[:10]}...\nNegative prompt: {negative_prompt[:10]}...\nSteps: {num_steps}\nGuidance Scale: {g_scale}\nImg: {img}\nW: {width}\nHeight: {height}\n\n")
+        print("no gpu or cpu selected")
+
+    pipe.unet.load_state_dict(checkpoint["state_dict"], strict=False)
+
+    print(f"\n\nGenerating with prompt: {prompt[:10]}...\nNegative prompt: {negative_prompt[:10]}...\nSteps: {num_steps}\nGuidance Scale: {g_scale}\nImg: {img}\nDimensions: {width}x{height}\n\n")
     
     with autocast(device_type):
         gen_image = pipe(

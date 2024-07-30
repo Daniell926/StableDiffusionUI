@@ -1,3 +1,9 @@
 models/ControlNet/sd-controlnet-canny
 models/Stable-Diffusion/stable-diffusion-v1-5
 venv/
+models/Checkpoints/
+models/ControlNet/
+models/Stable-Diffusion/
+!models/Checkpoints/Stable-Diffusion checkpoints here.txt
+!models/ControlNet/Control-Net models here.txt
+!models/Stable-Diffusion/Stable-Diffusion models here.txt

@@ -1,9 +1,11 @@
 import presets
 from app import render_prompt
+from app import SD_checkpoints_list, CN_model_list
 import gradio as gr
 
 
-
+print(SD_checkpoints_list)
+print(CN_model_list)
 
 
 js = """
@@ -71,8 +73,7 @@ css = """
 
 presets_list = list(presets.presets.keys())
 material_list = list(presets.materials.keys())
-checkpoint_list = ["test", "test"]
-preprocessor_list = ["test", "t"]
+
 
 def get_attributes(list):
     if list:
@@ -93,8 +94,10 @@ def generate_image(
                 attlist, 
                 b, 
                 text, 
+                SD_checkpoint,
+                CN_preprocessor,
                 negative_prompt="",
-                num_steps=5,
+                num_steps=10,
                 g_scale=1,
                 height=500,
                 width=500,
@@ -106,16 +109,16 @@ def generate_image(
         prompt += "," + text if prompt else text
         
 
-
-
     return render_prompt(
-        prompt=prompt,
-        negative_prompt=negative_prompt,
-        num_steps=num_steps,
-        g_scale=g_scale,
-        height=height,
-        width=width,
-        img=img
+        prompt              =   prompt,
+        negative_prompt     =   negative_prompt,
+        num_steps           =   num_steps,
+        g_scale             =   g_scale,
+        height              =   height,
+        width               =   width,
+        img                 =   img,
+        SD_checkpoint       =   SD_checkpoint,
+        CN_preprocessor     =   CN_preprocessor
         )
 
 def toggle_prompt(b):
@@ -144,7 +147,7 @@ with gr.Blocks(js=js, css=css, theme=theme) as demo:
 
             with gr.Row(): 
 
-                checkpoint = gr.Dropdown(checkpoint_list, scale=0, label="SD checkpoint", container=False)
+                checkpoint = gr.Dropdown(SD_checkpoints_list, scale=0, label="SD checkpoint", container=False)
 
             #Checkboxes
 
@@ -195,20 +198,20 @@ with gr.Blocks(js=js, css=css, theme=theme) as demo:
                                         
                             CNUnit1 = gr.Image(width=CNImageW, height=CNImageH)
                             gr.Markdown("Preprocessor:")
-                            preProc1 = gr.Dropdown(preprocessor_list, container=False, scale=0)
-                        
+                            preProc1 = gr.Dropdown(CN_model_list, container=False, scale=0)
+                        '''
                         with gr.TabItem("Image unit 2"):
 
                             CNUnit2 = gr.Image(width=CNImageW, height=CNImageH)
                             gr.Markdown("Preprocessor:")
-                            preProc2 = gr.Dropdown(preprocessor_list, container=False, scale=0)                           
+                            preProc2 = gr.Dropdown(CN_model_list, container=False, scale=0)                           
                         
                         with gr.TabItem("Image unit 3"):
 
                             CNUnit3 = gr.Image(width=CNImageW, height=CNImageH)
                             gr.Markdown("Preprocessor:")
-                            preProc3 = gr.Dropdown(preprocessor_list, container=False, scale=0)
-                
+                            preProc3 = gr.Dropdown(CN_model_list, container=False, scale=0)
+                        '''
                 useImageCheckbox.change(fn=toggle_prompt, inputs=useImageCheckbox, outputs=tabsContainer)
                             
 
@@ -230,7 +233,7 @@ with gr.Blocks(js=js, css=css, theme=theme) as demo:
 
                 with gr.Group():
 
-                    outputImage = gr.Image(value = r"C:\UI test\output\2024-07-23_11-18.png", elem_classes="image-container")
+                    outputImage = gr.Image(elem_classes="image-container")
 
 
             #Presets
@@ -246,26 +249,30 @@ with gr.Blocks(js=js, css=css, theme=theme) as demo:
 
 
     generate.click(
-    fn=lambda material_preset, prompt_preset, prompt_checkbox, prompt_text, h, w, img: 
+    fn=lambda material_preset, prompt_preset, prompt_checkbox, prompt_text, h, w, img, preproc, checkpoint: 
         generate_image(
-            matlist=material_preset, 
-            attlist=prompt_preset, 
-            b=prompt_checkbox, 
-            text=prompt_text, 
-            height=h, 
-            width=w,
-            img=img
+            matlist            =    material_preset, # prompt presets for materials/finishes
+            attlist            =    prompt_preset,   # general prompt presets
+            b                  =    prompt_checkbox, # boolean for if to include manual written prompt or not
+            text               =    prompt_text,     # manual prompt written in textbox
+            height             =    h,               # generated image height
+            width              =    w,               # generated image width
+            img                =    img,             # control net imgage
+            CN_preprocessor    =    preproc,         # control net preprocessor
+            SD_checkpoint      =    checkpoint       # SD custom checkpoint
         ),
     inputs=[
-        materialPresets,
-        promptPresets,
-        promptCheckbox,
-        promptTextbox,
-        imageH,
-        imageW,
-        CNUnit1
+        materialPresets,    # Multi-select dropdown
+        promptPresets,      # Multi-select dropdown
+        promptCheckbox,     # Checkbox
+        promptTextbox,      # Textbox   
+        imageH,             # Slider
+        imageW,             # Slider
+        CNUnit1,            # Image
+        preProc1,           # Dropdown
+        checkpoint          # Dropdown
         ], 
-        outputs=outputImage
+        outputs=outputImage # Image
     )
 
 
