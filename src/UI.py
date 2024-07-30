@@ -96,17 +96,21 @@ def generate_image(
                 text, 
                 SD_checkpoint,
                 CN_preprocessor,
+                img,
                 negative_prompt="",
                 num_steps=10,
                 g_scale=1,
                 height=500,
-                width=500,
-                img=None
+                width=500
+                
                 ):
     
     prompt = ",".join(get_attributes(attlist) + get_materials(matlist))
     if b:
         prompt += "," + text if prompt else text
+
+    if img is False:
+        img = None
         
 
     return render_prompt(
@@ -126,6 +130,9 @@ def toggle_prompt(b):
 
 def get_image_dimensions(s1, s2):
     return str(s1) + "x" + str(s2)
+
+def handle_none(value, default):
+    return default if value is None else value
 
 theme = gr.themes.Soft(
     primary_hue="sky",
@@ -251,15 +258,15 @@ with gr.Blocks(js=js, css=css, theme=theme) as demo:
     generate.click(
     fn=lambda material_preset, prompt_preset, prompt_checkbox, prompt_text, h, w, img, preproc, checkpoint: 
         generate_image(
-            matlist            =    material_preset, # prompt presets for materials/finishes
-            attlist            =    prompt_preset,   # general prompt presets
-            b                  =    prompt_checkbox, # boolean for if to include manual written prompt or not
-            text               =    prompt_text,     # manual prompt written in textbox
-            height             =    h,               # generated image height
-            width              =    w,               # generated image width
-            img                =    img,             # control net imgage
-            CN_preprocessor    =    preproc,         # control net preprocessor
-            SD_checkpoint      =    checkpoint       # SD custom checkpoint
+            matlist            =    material_preset,            # prompt presets for materials/finishes
+            attlist            =    prompt_preset,              # general prompt presets
+            b                  =    prompt_checkbox,            # boolean for if to include manual written prompt or not
+            text               =    prompt_text,                # manual prompt written in textbox
+            height             =    h,                          # generated image height
+            width              =    w,                          # generated image width
+            img                =    handle_none(img, False),    # control net imgage
+            CN_preprocessor    =    preproc,                    # control net preprocessor
+            SD_checkpoint      =    checkpoint                  # SD custom checkpoint
         ),
     inputs=[
         materialPresets,    # Multi-select dropdown
