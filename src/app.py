@@ -5,6 +5,7 @@ from diffusers import StableDiffusionPipeline, StableDiffusionControlNetPipeline
 import datetime
 import numpy as np
 from PIL import Image
+from canny import canny
 
 #SDV5_MODEL_PATH = os.getenv("SDV5_MODEL_PATH")
 #SAVE_PATH = os.environ("USERPROFILE")
@@ -46,11 +47,11 @@ def name_file(path):
 def numpy_to_pil(np_array):
     return Image.fromarray(np.uint8(np_array))
 
-def init_cuda_pipe(using_CN: bool, low_vram: bool, CN_preprocessor):
+def init_cuda_pipe(using_CN: bool, low_vram: bool, controlnet):
 
     if using_CN and low_vram:
-        controlnet = ControlNetModel.from_pretrained(CN_preprocessor)
-        pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH, torch_dtype=torch.float16, revision='fp16')
+
+        pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH, controlnet=controlnet, torch_dtype=torch.float16, revision='fp16')
         pipe.enable_attention_slicing()
 
     elif low_vram:
@@ -58,11 +59,11 @@ def init_cuda_pipe(using_CN: bool, low_vram: bool, CN_preprocessor):
         pipe.enable_attention_slicing()
 
     elif using_CN:
-        controlnet = ControlNetModel.from_pretrained(CN_preprocessor)
+
         pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH,controlnet=controlnet)
 
     else:
-        pipe = StableDiffusionPipeline.from_pretrained(CN_preprocessor)
+        pipe = StableDiffusionPipeline.from_pretrained(SD_MODEL_PATH)
 
     return pipe
 
@@ -83,7 +84,13 @@ def render_prompt(
 
     if using_cn:
         CN_preprocessor = os.path.join(CN_MODELS_DIR, CN_preprocessor)
+
+        if "canny".lower() in CN_preprocessor.lower():
+            img = np.array(img)
+            img = canny(img)
+
         img = numpy_to_pil(img)
+        controlnet = ControlNetModel.from_pretrained(CN_preprocessor)
 
 
     print(SD_checkpoint)
@@ -94,13 +101,12 @@ def render_prompt(
     
     if device_type == "cuda":
 
-        pipe = init_cuda_pipe(using_cn, low_vram, CN_preprocessor)
+        pipe = init_cuda_pipe(using_cn, low_vram, controlnet)
         pipe.to("cuda")
 
     elif device_type == "cpu":
 
         if using_cn:
-            controlnet = ControlNetModel.from_pretrained(CN_preprocessor)
             pipe = StableDiffusionControlNetPipeline.from_pretrained(SD_MODEL_PATH,controlnet=controlnet)
         
         else:

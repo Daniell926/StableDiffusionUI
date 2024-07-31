@@ -98,7 +98,7 @@ def generate_image(
                 CN_preprocessor,
                 img,
                 negative_prompt="",
-                num_steps=10,
+                num_steps=5,
                 g_scale=1,
                 height=500,
                 width=500
