@@ -12,14 +12,15 @@ from canny import canny
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 CN_MODELS_DIR = os.path.abspath(os.path.join(current_dir, "..", "models", "ControlNet"))
-SD_MODELS_DIR = os.path.abspath(os.path.join(current_dir, "..", "models", "Stable-Diffusion"))
+
 SD_CHECKPOINTS_DIR = os.path.abspath(os.path.join(current_dir, "..", "models", "Checkpoints"))
 
 CN_model_list = [f for f in os.listdir(CN_MODELS_DIR) if not f.endswith('.txt')]
-SD_model_list = [f for f in os.listdir(SD_MODELS_DIR) if not f.endswith('.txt')]
+
 SD_checkpoints_list = [f for f in os.listdir(SD_CHECKPOINTS_DIR) if not f.endswith('.txt')]
 
-SD_MODEL_PATH = os.path.abspath(os.path.join(current_dir, "..", "models", "Stable-Diffusion", "stable-diffusion-v1-5"))
+
+SD_MODEL_PATH = "runwayml/stable-diffusion-v1-5"
 
 print(SD_MODEL_PATH)
 
@@ -83,6 +84,11 @@ def render_prompt(
     using_cn = (img is not None)
 
     if using_cn:
+        
+        if CN_preprocessor is None:
+            print("\n\nSelect a preprocessor if using controlnet\n\n")
+            return 0
+        
         CN_preprocessor = os.path.join(CN_MODELS_DIR, CN_preprocessor)
 
         if "canny".lower() in CN_preprocessor.lower():
