@@ -1,5 +1,7 @@
 gradio
 torch
+torchvision
+torchaudio
 diffusers
 Pillow
 transformers
