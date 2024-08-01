@@ -32,11 +32,12 @@ def clone_repo(repo_url, target_dir):
     item = os.path.join(target_dir, "stable-diffusion-v1-5")
     if not os.path.exists(item):
         print(f"{item} does not exist. Cloning repository...")
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
         try:
             # Ensure Git LFS is installed and initialized
             run_command(['git', 'lfs', 'install'])
-            print("Git LFS initialized.")
-
+            
             # Run the git clone command
             run_command(['git', 'clone', repo_url, target_dir])
             print("Repository successfully cloned.")
