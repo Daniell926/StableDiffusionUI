@@ -1,3 +1,10 @@
+import os
+import sys
+
+# Add the directory of the main file to sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
 import presets
 from app import render_prompt
 from app import SD_checkpoints_list, CN_model_list
