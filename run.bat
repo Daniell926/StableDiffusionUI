@@ -1,4 +1,6 @@
 @echo off
 
-pip install -r requirements.txt
-python src\UI.py
+set PYTHONPATH=%cd%\src
+cd src
+python UI.py
+pause
